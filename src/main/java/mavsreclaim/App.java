@@ -1,17 +1,19 @@
 package mavsreclaim;
 
 import io.javalin.Javalin;
-// import java.util.Map;
+import java.util.Map;
 // import java.util.ArrayList;
 import java.util.List;
+
+import io.javalin.rendering.template.JavalinThymeleaf;
 
 public class App {
   public static void main(String[] args) {
     Db.init();
     Db.seedLockers();
 
-    Javalin app = Javalin.create().start(7070);
-
+    Javalin app = Javalin.create(config -> {config.fileRenderer(new JavalinThymeleaf());}).start(7070);
+      
     app.get("/", ctx -> ctx.result("hello"));
     app.get("/test", ctx -> ctx.result("Hello, but from a test page"));
     app.get("/buildings", ctx -> ctx.result(Db.allBuildings().toString()));
@@ -72,6 +74,10 @@ public class App {
     app.get("test/admin", ctx -> {
       List<FoundItem> results = Db.searchItems("Nedderman Hall", "bottle", "2026-07-15");
       ctx.json(results);
+    });
+
+    app.get("test/admin2", ctx -> {
+      ctx.render("templates/admin.html", Map.of("results", Db.searchItems("Nedderman Hall", "bottle", "2026-07-15")));
     });
     app.get("/test/claim/{id}", ctx -> {
       int id = Integer.parseInt(ctx.pathParam("id"));

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>MavsReclaim — Admin</title>
+</head>
+<body>
+  <h1>Matching Items</h1>
+
+  <table border="1" cellpadding="8">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Description</th>
+        <th>Category</th>
+        <th>Building</th>
+        <th>Locker</th>
+        <th>Status</th>
+        <th>Reported</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr th:each="item : ${results}">
+        <td th:text="${item.id}">1</td>
+        <td th:text="${item.description}">Blue Hydroflask</td>
+        <td th:text="${item.category}">bottle</td>
+        <td th:text="${item.building}">Nedderman Hall</td>
+        <td th:text="${item.lockerId}">3</td>
+        <td th:text="${item.status}">stored</td>
+        <td th:text="${item.createdAt}">2026-07-15</td>
+      </tr>
+      <tr th:if="${results.isEmpty()}">
+        <td colspan="7">No matching items.</td>
+      </tr>
+    </tbody>
+  </table>
+</body>
+</html>
