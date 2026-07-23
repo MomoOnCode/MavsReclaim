@@ -12,11 +12,19 @@ public class App {
     Db.init();
     Db.seedLockers();
 
-    Javalin app = Javalin.create(config -> {config.fileRenderer(new JavalinThymeleaf());}).start(7070);
+    Javalin app = Javalin.create(config -> {
+      config.fileRenderer(new JavalinThymeleaf());
+      config.staticFiles.add("/templates");
+    }).start(7070);
       
-    app.get("/", ctx -> ctx.result("hello"));
-    app.get("/test", ctx -> ctx.result("Hello, but from a test page"));
-    app.get("/buildings", ctx -> ctx.result(Db.allBuildings().toString()));
+    app.get("/", ctx -> ctx.render("templates/HomePage.html"));
+    app.get("/faq", ctx -> ctx.result("FAQ"));
+    app.get("/signin", ctx -> ctx .result("Sign In Page"));
+    app.get("/create", ctx -> ctx.result("Create an Account Page"));
+    app.get("/found", ctx -> ctx.result("Found Item Form"));
+    app.get("/lost", ctx -> ctx.result("Lost Item Form"));
+    
+
     /*
      * so like that app.get() above says if you run www.mavsreclaim.com/ serve the
      * result Hello
@@ -40,6 +48,7 @@ public class App {
      * db logic,
      * and /resources/schema.sql is the schema being ran by Db.init();
      */
+    app.get("/buildings", ctx -> ctx.result(Db.allBuildings().toString()));
 
     app.get("/test/add", ctx -> {
       FoundItem item = Db.addFoundItem(
