@@ -1,0 +1,197 @@
+/* Remove default browser spacing */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+
+/* Entire page */
+body {
+    font-family: Arial, sans-serif;
+    background-color: white;
+}
+
+
+/* Navigation Bar */
+.navbar {
+    height: 88px;
+
+    background: linear-gradient(
+        to right,
+        #2f65ad,
+        #172f52
+    );
+
+    display: flex;
+    align-items: center;
+
+    padding: 0 25px;
+
+    color: white;
+}
+
+
+/* Logo */
+.logo {
+    display: flex;
+    align-items: center;
+}
+
+
+.logo img {
+    height: 56px;
+    width: auto;
+}
+
+
+/* Main website title */
+.navbar h1 {
+    font-size: 32px;
+    margin-left: 10px;
+}
+
+
+/* Navigation links */
+nav {
+    display: flex;
+
+    margin-left: 50px;
+
+    gap: 200px;
+}
+
+
+nav a {
+    color: white;
+
+    text-decoration: none;
+
+    font-size: 24px;
+    font-weight: bold;
+}
+
+
+nav a:hover {
+    text-decoration: underline;
+}
+
+
+/* Account button */
+.account-button {
+    margin-left: auto;
+
+    width: 32px;
+    height: 32px;
+
+    border-radius: 50%;
+    border: none;
+
+    font-size: 8px;
+    font-weight: bold;
+
+    cursor: pointer;
+}
+
+
+/* Main area */
+main {
+    min-height: 505px;
+
+    display: flex;
+
+    justify-content: center;
+    align-items: flex-start;
+
+    padding-top: 56px;
+}
+
+
+/* Main blue welcome box */
+.welcome-box {
+    width: 512px;
+    height: 379px;
+
+    background-color: #1d3d69;
+
+    color: white;
+
+    text-align: center;
+
+    padding: 34px 50px;
+}
+
+
+/* Welcome heading */
+.welcome-box h2 {
+    font-size: 30px;
+
+    margin-bottom: 40px;
+}
+
+
+/* Paragraphs */
+.welcome-box p {
+    font-size: 14px;
+
+    margin-bottom: 14px;
+
+    line-height: 1.25;
+}
+
+
+/* Links */
+.welcome-box a {
+    color: white;
+
+    text-decoration: underline;
+}
+
+
+/* Button container */
+.action-buttons {
+    display: flex;
+
+    justify-content: space-between;
+
+    margin-top: 45px;
+}
+
+
+/* Found Item / Lost Item buttons */
+.item-button {
+    width: 115px;
+    height: 32px;
+
+    background-color: #ed8b38;
+
+    border: none;
+
+    border-radius: 10px;
+
+    color: #142d4f;
+
+    font-weight: bold;
+
+    cursor: pointer;
+
+    /* needed so an <a> behaves like the old <button> */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    text-decoration: none;
+}
+
+
+.item-button:hover {
+    background-color: #f2a45d;
+}
+
+
+/* Footer */
+footer {
+    height: 77px;
+
+    background-color: #626c75;
+}
