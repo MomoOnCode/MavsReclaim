@@ -6,21 +6,87 @@ import java.util.Map;
 import java.util.List;
 
 import io.javalin.rendering.template.JavalinThymeleaf;
+import at.favre.lib.crypto.bcrypt.BCrypt;
 
 public class App {
   public static void main(String[] args) {
     Db.init();
     Db.seedLockers();
+    Db.seedAdmin();
 
     Javalin app = Javalin.create(config -> {
       config.fileRenderer(new JavalinThymeleaf());
       config.staticFiles.add("/templates");
     }).start(7070);
       
-    app.get("/", ctx -> ctx.render("templates/HomePage.html"));
+    app.get("/", ctx -> {
+      var model = new java.util.HashMap<String, Object>();
+      model.put("username", ctx.sessionAttribute("username")); // null when not logged in
+      ctx.render("templates/HomePage.html", model);
+    });
     app.get("/faq", ctx -> ctx.result("FAQ"));
-    app.get("/signin", ctx -> ctx .result("Sign In Page"));
-    app.get("/create", ctx -> ctx.result("Create an Account Page"));
+    app.get("/signin", ctx -> ctx.render("templates/login.html"));
+
+    // Verify credentials, start a session, then send them to the admin panel.
+    app.post("/login", ctx -> {
+      String username = ctx.formParam("username");
+      String password = ctx.formParam("password");
+
+      User user = Db.findUserByUsername(username);
+      boolean ok = user != null
+          && BCrypt.verifyer().verify(password.toCharArray(), user.passwordHash()).verified;
+
+      if (ok) {
+        ctx.sessionAttribute("userId", user.id());
+        ctx.sessionAttribute("username", user.username());
+        ctx.sessionAttribute("role", user.role());
+
+        // Admins go to the admin panel; regular users land on the home page.
+        if ("admin".equals(user.role())) {
+          ctx.redirect("/admin");
+        } else {
+          ctx.redirect("/");
+        }
+      } else {
+        ctx.redirect("/signin?error=1");
+      }
+    });
+
+    // Protected — must be logged in AND have the admin role.
+    app.get("/admin", ctx -> {
+      Integer userId = ctx.sessionAttribute("userId");
+      String role = ctx.sessionAttribute("role");
+      if (userId == null) {
+        ctx.redirect("/signin");
+        return;
+      }
+      if (!"admin".equals(role)) {
+        ctx.redirect("/"); // logged in, but not an admin
+        return;
+      }
+      String username = ctx.sessionAttribute("username");
+      ctx.result("Admin Panel — logged in as " + username);
+    });
+
+    app.get("/logout", ctx -> {
+      ctx.req().getSession().invalidate();
+      ctx.redirect("/");
+    });
+    app.get("/create", ctx -> ctx.render("templates/create-account.html"));
+
+    // Create the account, then send them to the login page to sign in.
+    app.post("/create", ctx -> {
+      String username = ctx.formParam("username");
+      String email = ctx.formParam("email");
+      String password = ctx.formParam("password");
+
+      boolean created = Db.addUser(username, email, password);
+      if (created) {
+        ctx.redirect("/signin?created=1");
+      } else {
+        ctx.redirect("/create?error=1");
+      }
+    });
     app.get("/found", ctx -> ctx.result("Found Item Form"));
     app.get("/lost", ctx -> ctx.result("Lost Item Form"));
     

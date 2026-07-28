@@ -78,6 +78,42 @@ nav a:hover {
 
 
 /* Account button */
+.account-status {
+    margin-left: auto;
+
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+
+.logout-button {
+    background-color: #ed8b38;
+
+    border: none;
+    border-radius: 10px;
+
+    padding: 4px 12px;
+
+    color: #142d4f;
+    font-weight: bold;
+    font-size: 12px;
+
+    text-decoration: none;
+    cursor: pointer;
+}
+
+
+.logout-button:hover {
+    background-color: #f2a45d;
+}
+
+
 .account-button {
     margin-left: auto;
 

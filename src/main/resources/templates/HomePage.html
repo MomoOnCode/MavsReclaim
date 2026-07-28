@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 
 <head>
     <meta charset="UTF-8">
@@ -29,10 +29,16 @@
             <a href="/faq">FAQ</a>
         </nav>
 
-        <!-- Account Button -->
-        <button class="account-button">
+        <!-- Account Button — shown only when NOT logged in -->
+        <button th:if="${username == null}" class="account-button">
             Account
         </button>
+
+        <!-- Logged-in status — shown when a session exists -->
+        <div th:if="${username != null}" class="account-status">
+            <span>Logged in as: <span th:text="${username}">username</span></span>
+            <a href="/logout" class="logout-button">Log out</a>
+        </div>
 
     </header>
 

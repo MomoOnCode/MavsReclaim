@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.ArrayList;
 import java.time.format.DateTimeParseException;
 import java.time.LocalDate;
+import at.favre.lib.crypto.bcrypt.BCrypt;
 
 public class Db {
   private static final String URL = "jdbc:sqlite:mavsreclaim.db";
@@ -145,6 +146,61 @@ public class Db {
         rs.getInt("id"), rs.getString("description"), rs.getString("category"),
         rs.getString("building"), rs.getString("finder_email"),
         rs.wasNull() ? null : locker, rs.getString("pin"), rs.getString("status"), rs.getString("created_at"));
+  }
+
+  public static void seedAdmin() {
+    try (Connection c = connect()) {
+      try (ResultSet rs = c.createStatement().executeQuery("SELECT COUNT(*) FROM users WHERE role = 'admin'")) {
+        if (rs.getInt(1) > 0)
+          return; // an admin already exists, nothing to seed
+      }
+
+      String hash = BCrypt.withDefaults().hashToString(12, "admin".toCharArray());
+
+      try (PreparedStatement p = c.prepareStatement(
+          "INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, 'admin')")) {
+        p.setString(1, "admin");
+        p.setString(2, "admin@mavsreclaim.com");
+        p.setString(3, hash);
+        p.executeUpdate();
+      }
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  // Create a normal (non-admin) account. Returns false if the email is taken.
+  public static boolean addUser(String username, String email, String password) {
+    String hash = BCrypt.withDefaults().hashToString(12, password.toCharArray());
+    try (Connection c = connect();
+        PreparedStatement p = c.prepareStatement(
+            "INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, 'user')")) {
+      p.setString(1, username);
+      p.setString(2, email);
+      p.setString(3, hash);
+      p.executeUpdate();
+      return true;
+    } catch (SQLException e) {
+      // UNIQUE constraint on email -> duplicate signup
+      if (e.getMessage() != null && e.getMessage().contains("UNIQUE"))
+        return false;
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static User findUserByUsername(String username) {
+    try (Connection c = connect();
+        PreparedStatement p = c.prepareStatement("SELECT * FROM users WHERE username = ?")) {
+      p.setString(1, username);
+      ResultSet rs = p.executeQuery();
+      if (!rs.next())
+        return null;
+      return new User(
+          rs.getInt("id"), rs.getString("username"), rs.getString("email"),
+          rs.getString("password_hash"), rs.getString("role"));
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public static void seedLockers() {
