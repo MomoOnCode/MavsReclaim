@@ -24,8 +24,14 @@
 
         <nav>
             <a href="/">Home</a>
-            <a href="/logout">Log Out</a>
+            <a href="/faq">FAQ</a>
         </nav>
+
+        <!-- Logged-in status — same component as the home page -->
+        <div th:if="${username != null}" class="account-status">
+            <span>Logged in as: <span th:text="${username}">username</span></span>
+            <a href="/logout" class="logout-button">Log out</a>
+        </div>
 
     </header>
 
@@ -34,10 +40,6 @@
 
         <h2>Pending Lost Reports</h2>
 
-        <p class="subtitle">
-            Signed in as <span th:text="${username}">admin</span>.
-            Click a report to see the found items that might match it.
-        </p>
 
         <table class="admin-table">
 
@@ -57,8 +59,8 @@
 
                 <tr th:each="claim : ${claims}">
                     <td th:text="${claim.id}">1</td>
-                    <td th:text="${claim.description}">Blue metal water bottle</td>
-                    <td th:text="${claim.category}">bottle</td>
+                    <td th:text="${claim.description}">iPhone 16 Plus</td>
+                    <td th:text="${claim.category}">Phone</td>
                     <td th:text="${claim.building}">Nedderman Hall</td>
                     <td th:text="${claim.claimantEmail}">student1@mavs.uta.edu</td>
                     <td th:text="${claim.createdAt}">2026-07-28 10:14:02</td>

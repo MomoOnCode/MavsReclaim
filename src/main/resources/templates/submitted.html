@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>MavReclaim — Submitted</title>
+
+    <link rel="stylesheet" href="/HomeStyle.css">
+</head>
+
+<body>
+
+    <!-- Navigation Bar -->
+    <header class="navbar">
+        <div class="logo">
+            <img src="/uta_logo.png" alt="University of Texas at Arlington">
+        </div>
+
+        <h1>MavsReclaim</h1>
+
+        <nav>
+            <a href="/">Home</a>
+            <a href="/faq">FAQ</a>
+        </nav>
+    </header>
+
+
+    <main>
+
+        <section class="welcome-box">
+
+            <h2 th:text="${title}">Submitted!</h2>
+
+            <p th:text="${message}">Thanks for your submission.</p>
+
+            <!-- Only shown for found items that got a locker assigned -->
+            <p th:if="${lockerId != null}">
+                Drop it in locker <strong th:text="${lockerId}">1</strong>
+                using PIN <strong th:text="${pin}">0000</strong>.
+            </p>
+
+            <div class="action-buttons">
+                <a href="/" class="item-button">Back Home</a>
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <footer></footer>
+
+</body>
+
+</html>

@@ -77,6 +77,30 @@
 }
 
 
+/* Lost report (left) beside the matches table (right) */
+.claim-layout {
+    display: flex;
+
+    gap: 24px;
+
+    align-items: flex-start;
+
+    margin-bottom: 28px;
+}
+
+
+.claim-layout .claim-card {
+    flex: 0 0 300px; /* fixed-width left column */
+
+    margin-bottom: 0; /* spacing handled by .claim-layout gap */
+}
+
+
+.claim-layout .admin-table {
+    flex: 1; /* table takes the rest of the width */
+}
+
+
 /* Summary of the lost report on the detail page */
 .claim-card {
     background-color: #1d3d69;
@@ -115,9 +139,10 @@
 /* Green approve / grey reject buttons, same shape as .item-button */
 .approve-button,
 .reject-button {
-    height: 30px;
-
-    padding: 0 16px;
+    /* No fixed height — padding controls the size so the text isn't cramped.
+       (With box-sizing: border-box, a fixed height + padding just squeezes
+       the text; letting padding set the height avoids that.) */
+    padding: 10px 16px;
 
     border: none;
     border-radius: 10px;
@@ -142,6 +167,9 @@
 
 .reject-button {
     background-color: #626c75;
+
+    /* a little roomier than the approve button */
+    padding: 10px 25px;
 }
 
 

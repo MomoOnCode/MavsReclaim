@@ -20,6 +20,7 @@ public class App {
     app.get("/", ctx -> {
       var model = new java.util.HashMap<String, Object>();
       model.put("username", ctx.sessionAttribute("username")); // null when not logged in
+      model.put("role", ctx.sessionAttribute("role"));         // "admin" gates the panel button
       ctx.render("templates/HomePage.html", model);
     });
     app.get("/faq", ctx -> ctx.result("FAQ"));
@@ -132,8 +133,46 @@ public class App {
         ctx.redirect("/create?error=1");
       }
     });
-    app.get("/found", ctx -> ctx.result("Found Item Form"));
-    app.get("/lost", ctx -> ctx.result("Lost Item Form"));
+    // ---- Found-item report (public — someone turning in an item) ----
+    app.get("/found", ctx -> ctx.render("templates/found.html", Map.of(
+        "buildings", Db.allBuildings(),
+        "categories", Categories.ALL)));
+
+    app.post("/found", ctx -> {
+      String desc = ctx.formParam("description");
+      String category = ctx.formParam("category");
+      String building = ctx.formParam("building");
+      String email = ctx.formParam("email");
+
+      FoundItem item = Db.addFoundItem(desc, category, building, email);
+      Emailer.sendDropoffInstructions(item);
+
+      // lockerId can be null (no free locker in that building) -> HashMap, not Map.of
+      var model = new java.util.HashMap<String, Object>();
+      model.put("title", "Thanks for turning in an item!");
+      model.put("message", "We've emailed drop-off instructions to " + email + ".");
+      model.put("lockerId", item.lockerId());
+      model.put("pin", item.pin());
+      ctx.render("templates/submitted.html", model);
+    });
+
+    // ---- Lost-item report (public — becomes a claim in the admin queue) ----
+    app.get("/lost", ctx -> ctx.render("templates/lost.html", Map.of(
+        "buildings", Db.allBuildings(),
+        "categories", Categories.ALL)));
+
+    app.post("/lost", ctx -> {
+      String desc = ctx.formParam("description");
+      String category = ctx.formParam("category");
+      String building = ctx.formParam("building");
+      String email = ctx.formParam("email");
+
+      Db.addClaim(desc, category, building, email);
+
+      ctx.render("templates/submitted.html", Map.of(
+          "title", "Your lost report was submitted!",
+          "message", "An admin will review it and email " + email + " if a match is found."));
+    });
     
 
     /*

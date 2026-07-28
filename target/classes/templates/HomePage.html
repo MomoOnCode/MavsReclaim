@@ -37,6 +37,7 @@
         <!-- Logged-in status — shown when a session exists -->
         <div th:if="${username != null}" class="account-status">
             <span>Logged in as: <span th:text="${username}">username</span></span>
+            <a th:if="${role == 'admin'}" href="/admin" class="logout-button">Admin Panel</a>
             <a href="/logout" class="logout-button">Log out</a>
         </div>
 

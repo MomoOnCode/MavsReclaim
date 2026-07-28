@@ -36,6 +36,8 @@ body {
 .logo {
     display: flex;
     align-items: center;
+
+    margin-left: -10px; /* nudge the UTA logo slightly left */
 }
 
 
@@ -49,6 +51,12 @@ body {
 .navbar h1 {
     font-size: 32px;
     margin-left: 10px;
+
+    background: linear-gradient(to right, #ffffff, #ed8b38 55%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
 }
 
 
