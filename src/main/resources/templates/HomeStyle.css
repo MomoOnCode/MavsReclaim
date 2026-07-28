@@ -145,9 +145,9 @@ main {
     display: flex;
 
     justify-content: center;
-    align-items: flex-start;
+    align-items: center;
 
-    padding-top: 56px;
+    padding-top: 200px;
 }
 
 
