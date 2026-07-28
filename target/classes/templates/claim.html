@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>MavReclaim — Review Claim</title>
+
+    <link rel="stylesheet" href="/HomeStyle.css">
+    <link rel="stylesheet" href="/AdminStyle.css">
+</head>
+
+<body>
+
+    <!-- Navigation Bar -->
+    <header class="navbar">
+
+        <div class="logo">
+            <img src="/uta_logo.png" alt="University of Texas at Arlington">
+        </div>
+
+        <h1>MavsReclaim</h1>
+
+        <nav>
+            <a href="/">Home</a>
+            <a href="/logout">Log Out</a>
+        </nav>
+
+    </header>
+
+
+    <main class="admin-main">
+
+        <a href="/admin" class="back-link">&larr; Back to pending reports</a>
+
+        <!-- What the student said they lost -->
+        <section class="claim-card">
+
+            <h2>Lost Report #<span th:text="${claim.id}">1</span></h2>
+
+            <dl>
+                <dt>Description</dt>
+                <dd th:text="${claim.description}">Blue metal water bottle</dd>
+
+                <dt>Category</dt>
+                <dd th:text="${claim.category}">bottle</dd>
+
+                <dt>Building</dt>
+                <dd th:text="${claim.building}">Nedderman Hall</dd>
+
+                <dt>Reported by</dt>
+                <dd th:text="${claim.claimantEmail}">student1@mavs.uta.edu</dd>
+
+                <dt>Reported on</dt>
+                <dd th:text="${claim.createdAt}">2026-07-28 10:14:02</dd>
+
+                <dt>Status</dt>
+                <dd th:text="${claim.status}">pending</dd>
+            </dl>
+
+        </section>
+
+
+        <h2>Possible Matches</h2>
+
+        <p class="subtitle">
+            Stored items in <span th:text="${claim.building}">Nedderman Hall</span>,
+            closest category and date first. Approving emails the locker number
+            and PIN to <span th:text="${claim.claimantEmail}">the student</span>.
+        </p>
+
+        <table class="admin-table">
+
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Description</th>
+                    <th>Category</th>
+                    <th>Locker</th>
+                    <th>Found On</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                <!-- Highlighted when the category is an exact match -->
+                <tr th:each="item : ${matches}"
+                    th:classappend="${item.category == claim.category} ? 'exact-match'">
+
+                    <td th:text="${item.id}">1</td>
+                    <td th:text="${item.description}">Blue Hydroflask</td>
+
+                    <td>
+                        <span th:text="${item.category}">bottle</span>
+                        <span class="badge"
+                              th:if="${item.category == claim.category}">exact</span>
+                    </td>
+
+                    <td th:text="${item.lockerId} ?: 'Lost &amp; Found Office'">3</td>
+                    <td th:text="${item.createdAt}">2026-07-28 09:02:11</td>
+
+                    <td>
+                        <!-- Each row posts its own item id as the chosen match -->
+                        <form th:action="@{/admin/claim/{id}/approve(id=${claim.id})}"
+                              method="post">
+                            <input type="hidden" name="itemId" th:value="${item.id}">
+                            <button type="submit" class="approve-button">Approve</button>
+                        </form>
+                    </td>
+
+                </tr>
+
+                <tr th:if="${matches.isEmpty()}">
+                    <td colspan="6" class="empty">
+                        No stored items in this building.
+                    </td>
+                </tr>
+
+            </tbody>
+
+        </table>
+
+        <!-- Clears the report out of the queue when nothing here is it -->
+        <form th:action="@{/admin/claim/{id}/reject(id=${claim.id})}"
+              method="post"
+              style="margin-top: 24px;">
+            <button type="submit" class="reject-button">
+                No match — reject this report
+            </button>
+        </form>
+
+    </main>
+
+
+    <footer></footer>
+
+</body>
+
+</html>

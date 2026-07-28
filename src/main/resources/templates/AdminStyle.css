@@ -1,0 +1,181 @@
+/* Styles for the admin pages. The tables need far more room than the fixed
+   512px .welcome-box in HomeStyle.css, so they get their own layout here. */
+
+.admin-main {
+    max-width: 1100px;
+
+    margin: 0 auto;
+
+    padding: 32px 25px 64px;
+}
+
+
+.admin-main h2 {
+    color: #1d3d69;
+
+    margin-bottom: 6px;
+}
+
+
+/* Grey helper line under each page heading */
+.subtitle {
+    color: #626c75;
+
+    font-size: 14px;
+
+    margin-bottom: 24px;
+}
+
+
+/* Shared table look */
+.admin-table {
+    width: 100%;
+
+    border-collapse: collapse;
+
+    font-size: 14px;
+}
+
+
+.admin-table th {
+    background-color: #1d3d69;
+
+    color: white;
+
+    text-align: left;
+
+    padding: 10px 12px;
+}
+
+
+.admin-table td {
+    border-bottom: 1px solid #dcdcdc;
+
+    padding: 10px 12px;
+}
+
+
+.admin-table tbody tr:hover {
+    background-color: #f2f6fb;
+}
+
+
+.admin-table a {
+    color: #2f65ad;
+
+    font-weight: bold;
+}
+
+
+/* "No pending reports." row */
+.empty {
+    color: #626c75;
+
+    font-style: italic;
+
+    text-align: center;
+}
+
+
+/* Summary of the lost report on the detail page */
+.claim-card {
+    background-color: #1d3d69;
+
+    color: white;
+
+    padding: 20px 24px;
+
+    margin-bottom: 28px;
+}
+
+
+.claim-card h2 {
+    color: white;
+
+    margin-bottom: 14px;
+}
+
+
+.claim-card dl {
+    display: grid;
+
+    grid-template-columns: 150px 1fr;
+
+    row-gap: 8px;
+
+    font-size: 14px;
+}
+
+
+.claim-card dt {
+    font-weight: bold;
+}
+
+
+/* Green approve / grey reject buttons, same shape as .item-button */
+.approve-button,
+.reject-button {
+    height: 30px;
+
+    padding: 0 16px;
+
+    border: none;
+    border-radius: 10px;
+
+    color: white;
+
+    font-weight: bold;
+
+    cursor: pointer;
+}
+
+
+.approve-button {
+    background-color: #2e7d4f;
+}
+
+
+.approve-button:hover {
+    background-color: #389960;
+}
+
+
+.reject-button {
+    background-color: #626c75;
+}
+
+
+.reject-button:hover {
+    background-color: #7c8792;
+}
+
+
+/* Marks the rows whose category is an exact match for the claim */
+.exact-match {
+    background-color: #fdf3e7;
+}
+
+
+.badge {
+    background-color: #ed8b38;
+
+    color: #142d4f;
+
+    border-radius: 8px;
+
+    padding: 2px 8px;
+
+    font-size: 11px;
+    font-weight: bold;
+}
+
+
+.back-link {
+    display: inline-block;
+
+    color: #2f65ad;
+
+    font-size: 14px;
+
+    margin-bottom: 18px;
+}

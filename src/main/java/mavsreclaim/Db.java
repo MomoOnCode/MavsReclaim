@@ -148,6 +148,105 @@ public class Db {
         rs.wasNull() ? null : locker, rs.getString("pin"), rs.getString("status"), rs.getString("created_at"));
   }
 
+  // ---------- claims (lost-item reports) ----------
+
+  // Insert a lost-item report. Starts out 'pending' with no matched item.
+  public static Claim addClaim(String desc, String category, String building,
+      String claimantEmail) {
+    String sql = """
+        INSERT INTO claims (description, category, building, claimant_email)
+        VALUES (?, ?, ?, ?)
+        """;
+    try (Connection c = connect();
+        PreparedStatement p = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+      p.setString(1, desc);
+      p.setString(2, category);
+      p.setString(3, building);
+      p.setString(4, claimantEmail);
+      p.executeUpdate();
+
+      ResultSet keys = p.getGeneratedKeys();
+      int id = keys.next() ? keys.getInt(1) : -1;
+      return findClaim(id);
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  // The queue the admin works through, oldest first so nobody waits forever.
+  public static List<Claim> pendingClaims() {
+    List<Claim> out = new ArrayList<>();
+    String sql = "SELECT * FROM claims WHERE status = 'pending' ORDER BY created_at ASC";
+    try (Connection c = connect();
+        PreparedStatement p = c.prepareStatement(sql);
+        ResultSet rs = p.executeQuery()) {
+      while (rs.next())
+        out.add(claimFromRow(rs));
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+    return out;
+  }
+
+  public static Claim findClaim(int id) {
+    try (Connection c = connect();
+        PreparedStatement p = c.prepareStatement("SELECT * FROM claims WHERE id = ?")) {
+      p.setInt(1, id);
+      ResultSet rs = p.executeQuery();
+      return rs.next() ? claimFromRow(rs) : null;
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  // Found items that could plausibly be what this claim is describing.
+  // searchItems wants a bare yyyy-MM-dd, but created_at is "yyyy-MM-dd HH:mm:ss".
+  public static List<FoundItem> matchesFor(Claim claim) {
+    String reportedOn = claim.createdAt().substring(0, 10);
+    return searchItems(claim.building(), claim.category(), reportedOn);
+  }
+
+  // Link the claim to the item and hand the locker back. Guarded so a
+  // double-submit can't approve the same claim twice or release a locker that
+  // has since been reassigned.
+  public static boolean approveClaim(int claimId, int itemId) {
+    try (Connection c = connect();
+        PreparedStatement p = c.prepareStatement("""
+            UPDATE claims SET status = 'approved', matched_item = ?
+            WHERE id = ? AND status = 'pending'
+            """)) {
+      p.setInt(1, itemId);
+      p.setInt(2, claimId);
+      if (p.executeUpdate() == 0)
+        return false; // already handled by someone else
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+    markClaimed(itemId);
+    return true;
+  }
+
+  // Close out a claim the admin decided isn't a match, so it leaves the queue.
+  public static void rejectClaim(int claimId) {
+    try (Connection c = connect();
+        PreparedStatement p = c.prepareStatement(
+            "UPDATE claims SET status = 'rejected' WHERE id = ? AND status = 'pending'")) {
+      p.setInt(1, claimId);
+      p.executeUpdate();
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private static Claim claimFromRow(ResultSet rs) throws SQLException {
+    int matched = rs.getInt("matched_item");
+    return new Claim(
+        rs.getInt("id"), rs.getString("description"), rs.getString("category"),
+        rs.getString("building"), rs.getString("claimant_email"),
+        rs.getString("status"), rs.wasNull() ? null : matched,
+        rs.getString("created_at"));
+  }
+
   public static void seedAdmin() {
     try (Connection c = connect()) {
       try (ResultSet rs = c.createStatement().executeQuery("SELECT COUNT(*) FROM users WHERE role = 'admin'")) {

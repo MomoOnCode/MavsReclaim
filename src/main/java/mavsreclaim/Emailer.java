@@ -76,15 +76,30 @@ public class Emailer {
 
   // Sent to the claimant AFTER an admin approves their claim.
   public static void sendPickupInstructions(String claimantEmail, FoundItem item) {
-    String body = """
-        Good news — your claim on MavsReclaim was approved.
+    String body;
+    if (item.lockerId() == null) {
+      // No locker was free when it was dropped off, so it went to the office
+      // instead — there is no PIN to hand out.
+      body = """
+          Good news — your claim on MavsReclaim was approved.
 
-        Item: %s
-        Location: LOCKER %d, %s
-        PIN: %s
+          Item: %s
+          Found at: %s
 
-        Enter the PIN on the locker keypad to retrieve your item.
-        """.formatted(item.description(), item.lockerId(), item.building(), item.pin());
+          This item is being held at the Lost and Found Office rather than a
+          locker. Bring your student ID to the office to pick it up.
+          """.formatted(item.description(), item.building());
+    } else {
+      body = """
+          Good news — your claim on MavsReclaim was approved.
+
+          Item: %s
+          Location: LOCKER %d, %s
+          PIN: %s
+
+          Enter the PIN on the locker keypad to retrieve your item.
+          """.formatted(item.description(), item.lockerId(), item.building(), item.pin());
+    }
 
     send(claimantEmail, "MavsReclaim — your item is ready for pickup", body);
   }

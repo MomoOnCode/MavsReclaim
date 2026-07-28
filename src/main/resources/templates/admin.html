@@ -1,38 +1,85 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<head>
-  <meta charset="UTF-8">
-  <title>MavsReclaim — Admin</title>
-</head>
-<body>
-  <h1>Matching Items</h1>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 
-  <table border="1" cellpadding="8">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Description</th>
-        <th>Category</th>
-        <th>Building</th>
-        <th>Locker</th>
-        <th>Status</th>
-        <th>Reported</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr th:each="item : ${results}">
-        <td th:text="${item.id}">1</td>
-        <td th:text="${item.description}">Blue Hydroflask</td>
-        <td th:text="${item.category}">bottle</td>
-        <td th:text="${item.building}">Nedderman Hall</td>
-        <td th:text="${item.lockerId}">3</td>
-        <td th:text="${item.status}">stored</td>
-        <td th:text="${item.createdAt}">2026-07-15</td>
-      </tr>
-      <tr th:if="${results.isEmpty()}">
-        <td colspan="7">No matching items.</td>
-      </tr>
-    </tbody>
-  </table>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>MavReclaim — Admin</title>
+
+    <link rel="stylesheet" href="/HomeStyle.css">
+    <link rel="stylesheet" href="/AdminStyle.css">
+</head>
+
+<body>
+
+    <!-- Navigation Bar -->
+    <header class="navbar">
+
+        <div class="logo">
+            <img src="/uta_logo.png" alt="University of Texas at Arlington">
+        </div>
+
+        <h1>MavsReclaim</h1>
+
+        <nav>
+            <a href="/">Home</a>
+            <a href="/logout">Log Out</a>
+        </nav>
+
+    </header>
+
+
+    <main class="admin-main">
+
+        <h2>Pending Lost Reports</h2>
+
+        <p class="subtitle">
+            Signed in as <span th:text="${username}">admin</span>.
+            Click a report to see the found items that might match it.
+        </p>
+
+        <table class="admin-table">
+
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Description</th>
+                    <th>Category</th>
+                    <th>Building</th>
+                    <th>Reported By</th>
+                    <th>Reported On</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                <tr th:each="claim : ${claims}">
+                    <td th:text="${claim.id}">1</td>
+                    <td th:text="${claim.description}">Blue metal water bottle</td>
+                    <td th:text="${claim.category}">bottle</td>
+                    <td th:text="${claim.building}">Nedderman Hall</td>
+                    <td th:text="${claim.claimantEmail}">student1@mavs.uta.edu</td>
+                    <td th:text="${claim.createdAt}">2026-07-28 10:14:02</td>
+                    <td>
+                        <a th:href="@{/admin/claim/{id}(id=${claim.id})}" href="#">Review</a>
+                    </td>
+                </tr>
+
+                <tr th:if="${claims.isEmpty()}">
+                    <td colspan="7" class="empty">No pending reports.</td>
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </main>
+
+
+    <footer></footer>
+
 </body>
+
 </html>

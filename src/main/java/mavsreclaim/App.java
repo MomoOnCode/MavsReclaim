@@ -2,8 +2,6 @@ package mavsreclaim;
 
 import io.javalin.Javalin;
 import java.util.Map;
-// import java.util.ArrayList;
-import java.util.List;
 
 import io.javalin.rendering.template.JavalinThymeleaf;
 import at.favre.lib.crypto.bcrypt.BCrypt;
@@ -52,20 +50,67 @@ public class App {
       }
     });
 
-    // Protected — must be logged in AND have the admin role.
+    // Protected — the queue of lost reports waiting on a decision.
     app.get("/admin", ctx -> {
-      Integer userId = ctx.sessionAttribute("userId");
-      String role = ctx.sessionAttribute("role");
-      if (userId == null) {
-        ctx.redirect("/signin");
+      if (!requireAdmin(ctx))
         return;
-      }
-      if (!"admin".equals(role)) {
-        ctx.redirect("/"); // logged in, but not an admin
+      // Bind to a String first — sessionAttribute is generic, so inlining it
+      // into Map.of() makes javac infer the wrong type and fail at runtime.
+      String username = ctx.sessionAttribute("username");
+      ctx.render("templates/admin.html", Map.of(
+          "username", username,
+          "claims", Db.pendingClaims()));
+    });
+
+    // One lost report, plus the found items that might be it.
+    app.get("/admin/claim/{id}", ctx -> {
+      if (!requireAdmin(ctx))
+        return;
+      Claim claim = Db.findClaim(Integer.parseInt(ctx.pathParam("id")));
+      if (claim == null) {
+        ctx.status(404).result("No such claim");
         return;
       }
       String username = ctx.sessionAttribute("username");
-      ctx.result("Admin Panel — logged in as " + username);
+      ctx.render("templates/claim.html", Map.of(
+          "username", username,
+          "claim", claim,
+          "matches", Db.matchesFor(claim)));
+    });
+
+    // Admin picked which found item this claim refers to.
+    app.post("/admin/claim/{id}/approve", ctx -> {
+      if (!requireAdmin(ctx))
+        return;
+      int claimId = Integer.parseInt(ctx.pathParam("id"));
+      int itemId = Integer.parseInt(ctx.formParam("itemId"));
+
+      Claim claim = Db.findClaim(claimId);
+      FoundItem item = Db.findItem(itemId);
+      if (claim == null || item == null) {
+        ctx.status(404).result("No such claim or item");
+        return;
+      }
+      // Someone else may have already handed this item to a different claimant.
+      if (!"stored".equals(item.status())) {
+        ctx.status(409).result("That item is no longer available");
+        return;
+      }
+
+      // Update first: if the mail fails it only logs, and the admin can resend.
+      // The other order could hand out a PIN for an item still marked stored.
+      if (Db.approveClaim(claimId, itemId))
+        Emailer.sendPickupInstructions(claim.claimantEmail(), item);
+
+      ctx.redirect("/admin");
+    });
+
+    // Nothing in the building matched — take it out of the queue.
+    app.post("/admin/claim/{id}/reject", ctx -> {
+      if (!requireAdmin(ctx))
+        return;
+      Db.rejectClaim(Integer.parseInt(ctx.pathParam("id")));
+      ctx.redirect("/admin");
     });
 
     app.get("/logout", ctx -> {
@@ -146,14 +191,17 @@ public class App {
       ctx.result("4 items added");
     });
 
-    app.get("test/admin", ctx -> {
-      List<FoundItem> results = Db.searchItems("Nedderman Hall", "bottle", "2026-07-15");
-      ctx.json(results);
+    // Stand-in for the /lost form until it exists — gives /admin a queue to show.
+    app.get("/test/lost", ctx -> {
+      Db.addClaim("Blue metal water bottle", "bottle",
+          "Nedderman Hall", "student1@mavs.uta.edu");
+      Db.addClaim("White wireless earbuds in a case", "headphones",
+          "Nedderman Hall", "student2@mavs.uta.edu");
+      Db.addClaim("Black North Face backpack", "Backpack / Bag",
+          "University Hall", "student3@mavs.uta.edu");
+      ctx.result("3 lost reports added — open /admin");
     });
 
-    app.get("test/admin2", ctx -> {
-      ctx.render("templates/admin.html", Map.of("results", Db.searchItems("Nedderman Hall", "bottle", "2026-07-15")));
-    });
     app.get("/test/claim/{id}", ctx -> {
       int id = Integer.parseInt(ctx.pathParam("id"));
       FoundItem item = Db.findItem(id);
@@ -161,5 +209,19 @@ public class App {
       Db.markClaimed(id);
       ctx.result("claimed item " + id);
     });
+  }
+
+  // Every /admin route needs the same two checks, so they live here.
+  // Returns false once it has already sent a redirect.
+  private static boolean requireAdmin(io.javalin.http.Context ctx) {
+    if (ctx.sessionAttribute("userId") == null) {
+      ctx.redirect("/signin");
+      return false;
+    }
+    if (!"admin".equals(ctx.sessionAttribute("role"))) {
+      ctx.redirect("/"); // logged in, but not an admin
+      return false;
+    }
+    return true;
   }
 }
