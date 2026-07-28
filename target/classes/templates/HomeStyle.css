@@ -154,7 +154,7 @@ main {
 /* Main blue welcome box */
 .welcome-box {
     width: 512px;
-    height: 379px;
+    min-height: 379px; /* grows to fit the form instead of clipping it */
 
     background-color: #1d3d69;
 
@@ -234,8 +234,3 @@ main {
 
 
 /* Footer */
-footer {
-    height: 77px;
-
-    background-color: #626c75;
-}

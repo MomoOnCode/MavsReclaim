@@ -60,12 +60,23 @@
                     <dt>Reported by</dt>
                     <dd th:text="${claim.claimantEmail}">student1@mavs.uta.edu</dd>
 
+                    <dt>Lost on</dt>
+                    <dd th:text="${claim.lostOn}">2026-07-26</dd>
+
                     <dt>Reported on</dt>
                     <dd th:text="${claim.createdAt}">2026-07-28 10:14:02</dd>
 
                     <dt>Status</dt>
                     <dd th:text="${claim.status}">pending</dd>
                 </dl>
+
+                <!-- The photo the student uploaded, if any — click to enlarge -->
+                <a th:if="${claim.hasPhoto}"
+                   th:href="@{/claims/{id}/photo(id=${claim.id})}"
+                   target="_blank">
+                    <img th:src="@{/claims/{id}/photo(id=${claim.id})}"
+                         alt="Lost item photo" class="claim-photo">
+                </a>
 
             </section>
 
@@ -76,6 +87,7 @@
                 <thead>
                     <tr>
                         <th>ID</th>
+                        <th>Photo</th>
                         <th>Description</th>
                         <th>Category</th>
                         <th>Locker</th>
@@ -91,6 +103,17 @@
                         th:classappend="${item.category == claim.category} ? 'exact-match'">
 
                         <td th:text="${item.id}">1</td>
+
+                        <td>
+                            <!-- Click the thumbnail to open the full image in a new tab -->
+                            <a th:if="${item.hasPhoto}"
+                               th:href="@{/items/{id}/photo(id=${item.id})}"
+                               target="_blank">
+                                <img th:src="@{/items/{id}/photo(id=${item.id})}"
+                                     alt="" class="thumb">
+                            </a>
+                        </td>
+
                         <td th:text="${item.description}">Blue Hydroflask</td>
 
                         <td>
@@ -114,7 +137,7 @@
                     </tr>
 
                     <tr th:if="${matches.isEmpty()}">
-                        <td colspan="6" class="empty">
+                        <td colspan="7" class="empty">
                             No stored items in this building.
                         </td>
                     </tr>

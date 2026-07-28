@@ -136,6 +136,36 @@
 }
 
 
+/* Uploaded lost-item photo on the review page */
+.claim-photo {
+    display: block;
+
+    max-width: 100%;
+
+    margin-top: 16px;
+
+    border-radius: 8px;
+}
+
+
+/* Found-item thumbnails in the matches table */
+.thumb {
+    width: 60px;
+    height: 60px;
+
+    object-fit: cover;
+
+    border-radius: 6px;
+
+    cursor: pointer; /* hints it opens the full image */
+}
+
+
+.thumb:hover {
+    opacity: 0.85;
+}
+
+
 /* Green approve / grey reject buttons, same shape as .item-button */
 .approve-button,
 .reject-button {

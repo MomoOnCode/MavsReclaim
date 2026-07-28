@@ -144,7 +144,16 @@ public class App {
       String building = ctx.formParam("building");
       String email = ctx.formParam("email");
 
-      FoundItem item = Db.addFoundItem(desc, category, building, email);
+      // Optional uploaded photo (null if the field was left empty)
+      var upload = ctx.uploadedFile("photo");
+      byte[] photo = null;
+      String photoType = null;
+      if (upload != null && upload.size() > 0) {
+        photo = upload.content().readAllBytes();
+        photoType = upload.contentType();
+      }
+
+      FoundItem item = Db.addFoundItem(desc, category, building, email, photo, photoType);
       Emailer.sendDropoffInstructions(item);
 
       // lockerId can be null (no free locker in that building) -> HashMap, not Map.of
@@ -166,12 +175,43 @@ public class App {
       String category = ctx.formParam("category");
       String building = ctx.formParam("building");
       String email = ctx.formParam("email");
+      String lostOn = ctx.formParam("lostOn"); // yyyy-MM-dd from the date input
 
-      Db.addClaim(desc, category, building, email);
+      // Optional uploaded photo (null if the field was left empty)
+      var upload = ctx.uploadedFile("photo");
+      byte[] photo = null;
+      String photoType = null;
+      if (upload != null && upload.size() > 0) {
+        photo = upload.content().readAllBytes();
+        photoType = upload.contentType();
+      }
+
+      Db.addClaim(desc, category, building, email, lostOn, photo, photoType);
 
       ctx.render("templates/submitted.html", Map.of(
           "title", "Your lost report was submitted!",
           "message", "An admin will review it and email " + email + " if a match is found."));
+    });
+
+    // ---- Serve stored photos as image responses ----
+    app.get("/items/{id}/photo", ctx -> {
+      Photo p = Db.itemPhoto(Integer.parseInt(ctx.pathParam("id")));
+      if (p == null) {
+        ctx.status(404);
+        return;
+      }
+      ctx.contentType(p.type() != null ? p.type() : "application/octet-stream");
+      ctx.result(p.data());
+    });
+
+    app.get("/claims/{id}/photo", ctx -> {
+      Photo p = Db.claimPhoto(Integer.parseInt(ctx.pathParam("id")));
+      if (p == null) {
+        ctx.status(404);
+        return;
+      }
+      ctx.contentType(p.type() != null ? p.type() : "application/octet-stream");
+      ctx.result(p.data());
     });
     
 
@@ -233,11 +273,11 @@ public class App {
     // Stand-in for the /lost form until it exists — gives /admin a queue to show.
     app.get("/test/lost", ctx -> {
       Db.addClaim("Blue metal water bottle", "bottle",
-          "Nedderman Hall", "student1@mavs.uta.edu");
+          "Nedderman Hall", "student1@mavs.uta.edu", "2026-07-26");
       Db.addClaim("White wireless earbuds in a case", "headphones",
-          "Nedderman Hall", "student2@mavs.uta.edu");
+          "Nedderman Hall", "student2@mavs.uta.edu", "2026-07-25");
       Db.addClaim("Black North Face backpack", "Backpack / Bag",
-          "University Hall", "student3@mavs.uta.edu");
+          "University Hall", "student3@mavs.uta.edu", "2026-07-24");
       ctx.result("3 lost reports added — open /admin");
     });
 

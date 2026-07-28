@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS items (
     locker_id    INTEGER,
     pin          TEXT,
     status       TEXT NOT NULL DEFAULT 'stored',
+    photo        BLOB,
+    photo_type   TEXT,
     created_at   TEXT NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY (locker_id) REFERENCES lockers(id)
 );
@@ -25,6 +27,9 @@ CREATE TABLE IF NOT EXISTS claims (
     claimant_email TEXT NOT NULL,
     status         TEXT NOT NULL DEFAULT 'pending',
     matched_item   INTEGER,
+    lost_on        TEXT,
+    photo          BLOB,
+    photo_type     TEXT,
     created_at     TEXT NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY (matched_item) REFERENCES items(id)
 );

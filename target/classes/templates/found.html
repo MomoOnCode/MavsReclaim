@@ -35,7 +35,7 @@
 
             <p>Tell us what you found and where. We'll email you drop-off instructions.</p>
 
-            <form action="/found" method="post">
+            <form action="/found" method="post" enctype="multipart/form-data">
 
                 <p>
                     <label for="description">Description</label><br>
@@ -63,6 +63,11 @@
                     <label for="email">Your Email</label><br>
                     <input type="email" id="email" name="email"
                            placeholder="you@mavs.uta.edu" required>
+                </p>
+
+                <p>
+                    <label for="photo">Photo (optional)</label><br>
+                    <input type="file" id="photo" name="photo" accept="image/*">
                 </p>
 
                 <div class="action-buttons">

@@ -5,4 +5,4 @@ package mavsreclaim;
 // matchedItem points at that items row.
 public record Claim(int id, String description, String category, String building,
                     String claimantEmail, String status, Integer matchedItem,
-                    String createdAt) {}
+                    String lostOn, String createdAt, boolean hasPhoto) {}

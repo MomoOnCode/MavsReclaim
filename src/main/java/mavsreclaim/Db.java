@@ -31,9 +31,16 @@ public class Db {
     }
   }
 
-  // Insert a found item, assign it a free locker + PIN. Returns the new item.
+  // No-photo convenience overload (used by the test/seed routes).
   public static FoundItem addFoundItem(String desc, String category,
       String building, String finderEmail) {
+    return addFoundItem(desc, category, building, finderEmail, null, null);
+  }
+
+  // Insert a found item, assign it a free locker + PIN. Returns the new item.
+  // photo/photoType may be null when the finder didn't upload an image.
+  public static FoundItem addFoundItem(String desc, String category,
+      String building, String finderEmail, byte[] photo, String photoType) {
     String pin = String.format("%04d", new Random().nextInt(10000));
 
     try (Connection c = connect()) {
@@ -41,8 +48,8 @@ public class Db {
 
       String sql = """
           INSERT INTO items
-            (description, category, building, finder_email, locker_id, pin)
-          VALUES (?, ?, ?, ?, ?, ?)
+            (description, category, building, finder_email, locker_id, pin, photo, photo_type)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
           """;
       try (PreparedStatement p = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
         p.setString(1, desc);
@@ -54,12 +61,44 @@ public class Db {
         else
           p.setNull(5, Types.INTEGER);
         p.setString(6, pin);
+        if (photo != null)
+          p.setBytes(7, photo);
+        else
+          p.setNull(7, Types.BLOB);
+        p.setString(8, photoType);
         p.executeUpdate();
 
         ResultSet keys = p.getGeneratedKeys();
         int id = keys.next() ? keys.getInt(1) : -1;
-        return new FoundItem(id, desc, category, building, finderEmail, lockerId, pin, "stored", null);
+        return new FoundItem(id, desc, category, building, finderEmail, lockerId, pin,
+            "stored", null, photo != null);
       }
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  // Raw bytes of a found item's photo, or null if it has none.
+  public static Photo itemPhoto(int id) {
+    return fetchPhoto("SELECT photo, photo_type FROM items WHERE id = ?", id);
+  }
+
+  // Raw bytes of a claim's photo, or null if it has none.
+  public static Photo claimPhoto(int id) {
+    return fetchPhoto("SELECT photo, photo_type FROM claims WHERE id = ?", id);
+  }
+
+  private static Photo fetchPhoto(String sql, int id) {
+    try (Connection c = connect();
+        PreparedStatement p = c.prepareStatement(sql)) {
+      p.setInt(1, id);
+      ResultSet rs = p.executeQuery();
+      if (!rs.next())
+        return null;
+      byte[] data = rs.getBytes(1);
+      if (data == null)
+        return null;
+      return new Photo(data, rs.getString(2));
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
@@ -142,20 +181,29 @@ public class Db {
 
   private static FoundItem fromRow(ResultSet rs) throws SQLException {
     int locker = rs.getInt("locker_id");
+    Integer lockerId = rs.wasNull() ? null : locker;
+    boolean hasPhoto = rs.getBytes("photo") != null;
     return new FoundItem(
         rs.getInt("id"), rs.getString("description"), rs.getString("category"),
         rs.getString("building"), rs.getString("finder_email"),
-        rs.wasNull() ? null : locker, rs.getString("pin"), rs.getString("status"), rs.getString("created_at"));
+        lockerId, rs.getString("pin"), rs.getString("status"), rs.getString("created_at"),
+        hasPhoto);
   }
 
   // ---------- claims (lost-item reports) ----------
 
   // Insert a lost-item report. Starts out 'pending' with no matched item.
+  // No-photo convenience overload (used by the test/seed routes).
   public static Claim addClaim(String desc, String category, String building,
-      String claimantEmail) {
+      String claimantEmail, String lostOn) {
+    return addClaim(desc, category, building, claimantEmail, lostOn, null, null);
+  }
+
+  public static Claim addClaim(String desc, String category, String building,
+      String claimantEmail, String lostOn, byte[] photo, String photoType) {
     String sql = """
-        INSERT INTO claims (description, category, building, claimant_email)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO claims (description, category, building, claimant_email, lost_on, photo, photo_type)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         """;
     try (Connection c = connect();
         PreparedStatement p = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -163,6 +211,12 @@ public class Db {
       p.setString(2, category);
       p.setString(3, building);
       p.setString(4, claimantEmail);
+      p.setString(5, lostOn);
+      if (photo != null)
+        p.setBytes(6, photo);
+      else
+        p.setNull(6, Types.BLOB);
+      p.setString(7, photoType);
       p.executeUpdate();
 
       ResultSet keys = p.getGeneratedKeys();
@@ -200,10 +254,12 @@ public class Db {
   }
 
   // Found items that could plausibly be what this claim is describing.
-  // searchItems wants a bare yyyy-MM-dd, but created_at is "yyyy-MM-dd HH:mm:ss".
+  // Rank by the date the student says they lost it; fall back to the report
+  // date for older claims that predate the lost_on field. searchItems wants a
+  // bare yyyy-MM-dd, and created_at is "yyyy-MM-dd HH:mm:ss".
   public static List<FoundItem> matchesFor(Claim claim) {
-    String reportedOn = claim.createdAt().substring(0, 10);
-    return searchItems(claim.building(), claim.category(), reportedOn);
+    String onDate = claim.lostOn() != null ? claim.lostOn() : claim.createdAt().substring(0, 10);
+    return searchItems(claim.building(), claim.category(), onDate);
   }
 
   // Link the claim to the item and hand the locker back. Guarded so a
@@ -240,11 +296,13 @@ public class Db {
 
   private static Claim claimFromRow(ResultSet rs) throws SQLException {
     int matched = rs.getInt("matched_item");
+    Integer matchedItem = rs.wasNull() ? null : matched;
+    boolean hasPhoto = rs.getBytes("photo") != null;
     return new Claim(
         rs.getInt("id"), rs.getString("description"), rs.getString("category"),
         rs.getString("building"), rs.getString("claimant_email"),
-        rs.getString("status"), rs.wasNull() ? null : matched,
-        rs.getString("created_at"));
+        rs.getString("status"), matchedItem,
+        rs.getString("lost_on"), rs.getString("created_at"), hasPhoto);
   }
 
   public static void seedAdmin() {

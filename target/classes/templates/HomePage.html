@@ -29,11 +29,6 @@
             <a href="/faq">FAQ</a>
         </nav>
 
-        <!-- Account Button — shown only when NOT logged in -->
-        <button th:if="${username == null}" class="account-button">
-            Account
-        </button>
-
         <!-- Logged-in status — shown when a session exists -->
         <div th:if="${username != null}" class="account-status">
             <span>Logged in as: <span th:text="${username}">username</span></span>

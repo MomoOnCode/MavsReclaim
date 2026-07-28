@@ -35,7 +35,7 @@
 
             <p>Describe what you lost and where. An admin will check for matches.</p>
 
-            <form action="/lost" method="post">
+            <form action="/lost" method="post" enctype="multipart/form-data">
 
                 <p>
                     <label for="description">Description</label><br>
@@ -60,9 +60,19 @@
                 </p>
 
                 <p>
+                    <label for="lostOn">Date Lost</label><br>
+                    <input type="date" id="lostOn" name="lostOn" required>
+                </p>
+
+                <p>
                     <label for="email">Your Email</label><br>
                     <input type="email" id="email" name="email"
                            placeholder="you@mavs.uta.edu" required>
+                </p>
+
+                <p>
+                    <label for="photo">Photo (optional)</label><br>
+                    <input type="file" id="photo" name="photo" accept="image/*">
                 </p>
 
                 <div class="action-buttons">
