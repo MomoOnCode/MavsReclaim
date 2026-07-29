@@ -350,11 +350,173 @@ public class Db {
         PreparedStatement p = c.prepareStatement("SELECT * FROM users WHERE username = ?")) {
       p.setString(1, username);
       ResultSet rs = p.executeQuery();
-      if (!rs.next())
-        return null;
-      return new User(
-          rs.getInt("id"), rs.getString("username"), rs.getString("email"),
-          rs.getString("password_hash"), rs.getString("role"));
+      return rs.next() ? userFromRow(rs) : null;
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static User findUserById(int id) {
+    try (Connection c = connect();
+        PreparedStatement p = c.prepareStatement("SELECT * FROM users WHERE id = ?")) {
+      p.setInt(1, id);
+      ResultSet rs = p.executeQuery();
+      return rs.next() ? userFromRow(rs) : null;
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private static User userFromRow(ResultSet rs) throws SQLException {
+    return new User(
+        rs.getInt("id"), rs.getString("username"), rs.getString("email"),
+        rs.getString("password_hash"), rs.getString("role"), rs.getInt("points"));
+  }
+
+  // points + rewards 
+
+  // points are awarded to whoever's account matches the finder_email on a found item once a claim against it is approved. 
+  public static final int POINTS_PER_CLAIMED_ITEM = 25;
+
+  // guest reports which are ones without an email don't earn points since there is nowhere to credit them
+  public static void awardPoints(String email, int amount) {
+    if (email == null)
+      return;
+    try (Connection c = connect();
+        PreparedStatement p = c.prepareStatement(
+            "UPDATE users SET points = points + ? WHERE lower(email) = lower(?)")) {
+      p.setInt(1, amount);
+      p.setString(2, email);
+      p.executeUpdate();
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static List<Reward> activeRewards() {
+    List<Reward> out = new ArrayList<>();
+    String sql = "SELECT * FROM rewards WHERE active = 1 ORDER BY cost ASC";
+    try (Connection c = connect();
+        PreparedStatement p = c.prepareStatement(sql);
+        ResultSet rs = p.executeQuery()) {
+      while (rs.next())
+        out.add(rewardFromRow(rs));
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+    return out;
+  }
+
+  public static Reward findReward(int id) {
+    try (Connection c = connect();
+        PreparedStatement p = c.prepareStatement("SELECT * FROM rewards WHERE id = ?")) {
+      p.setInt(1, id);
+      ResultSet rs = p.executeQuery();
+      return rs.next() ? rewardFromRow(rs) : null;
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private static Reward rewardFromRow(ResultSet rs) throws SQLException {
+    int stock = rs.getInt("stock");
+    Integer stockVal = rs.wasNull() ? null : stock;
+    return new Reward(
+        rs.getInt("id"), rs.getString("name"), rs.getString("description"),
+        rs.getInt("cost"), stockVal, rs.getInt("active") == 1);
+  }
+
+  // redeems a reward for a user if they can afford it and it's in stock
+  // both the stock and points deductions are guarded UPDATEs
+  // can't overdraw either one, it will return a message meant to be shown to the user.
+  public static String redeem(int userId, int rewardId) {
+    User user = findUserById(userId);
+    Reward reward = findReward(rewardId);
+    if (user == null || reward == null || !reward.active())
+      return "That reward isn't available";
+    if (user.points() < reward.cost())
+      return "You don't have enough points";
+
+    try (Connection c = connect()) {
+      if (reward.stock() != null) {
+        try (PreparedStatement p = c.prepareStatement(
+            "UPDATE rewards SET stock = stock - 1 WHERE id = ? AND stock > 0")) {
+          p.setInt(1, rewardId);
+          if (p.executeUpdate() == 0)
+            return "Sorry, that reward just sold out.";
+        }
+      }
+      try (PreparedStatement p = c.prepareStatement(
+          "UPDATE users SET points = points - ? WHERE id = ? AND points >= ?")) {
+        p.setInt(1, reward.cost());
+        p.setInt(2, userId);
+        p.setInt(3, reward.cost());
+        if (p.executeUpdate() == 0)
+          return "You don't have enough points for that yet.";
+      }
+      try (PreparedStatement p = c.prepareStatement(
+          "INSERT INTO redemptions (user_id, reward_id) VALUES (?, ?)")) {
+        p.setInt(1, userId);
+        p.setInt(2, rewardId);
+        p.executeUpdate();
+      }
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+    return "Redeemed, show this to the admin " + reward.name() + ".";
+  }
+
+  public static List<Redemption> myRedemptions(int userId) {
+    List<Redemption> out = new ArrayList<>();
+    String sql = """
+        SELECT redemptions.id, rewards.name, rewards.cost, redemptions.redeemed_at
+        FROM redemptions
+        JOIN rewards ON rewards.id = redemptions.reward_id
+        WHERE redemptions.user_id = ?
+        ORDER BY redemptions.redeemed_at DESC
+        """;
+    try (Connection c = connect();
+        PreparedStatement p = c.prepareStatement(sql)) {
+      p.setInt(1, userId);
+      try (ResultSet rs = p.executeQuery()) {
+        while (rs.next())
+          out.add(new Redemption(rs.getInt(1), rs.getString(2), rs.getInt(3), rs.getString(4)));
+      }
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+    return out;
+  }
+
+  public static void seedRewards() {
+    try (Connection c = connect()) {
+      try (ResultSet rs = c.createStatement().executeQuery("SELECT COUNT(*) FROM rewards")) {
+        if (rs.getInt(1) > 0)
+          return;
+      }
+
+      Object[][] seed = {
+          // name, description, cost, stock (null = unlimited)
+          { "MavsReclaim Sticker", "A vinyl laptop sticker.", 20, null },
+          { "UC Coffee Cart Coupon", "One free coffee at the University Center cart.", 60, 50 },
+          { "UTA Bookstore $5 Gift Card", "Redeemable at the campus bookstore.", 200, 20 },
+          { "MavsReclaim T-Shirt", "Limited run — while supplies last.", 350, 15 },
+      };
+
+      try (PreparedStatement p = c.prepareStatement(
+          "INSERT INTO rewards (name, description, cost, stock) VALUES (?, ?, ?, ?)")) {
+        for (Object[] r : seed) {
+          p.setString(1, (String) r[0]);
+          p.setString(2, (String) r[1]);
+          p.setInt(3, (Integer) r[2]);
+          if (r[3] == null)
+            p.setNull(4, Types.INTEGER);
+          else
+            p.setInt(4, (Integer) r[3]);
+          p.addBatch();
+        }
+        p.executeBatch();
+      }
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
