@@ -11,6 +11,7 @@ public class App {
     Db.init();
     Db.seedLockers();
     Db.seedAdmin();
+    Db.seedRewards();
 
     Javalin app = Javalin.create(config -> {
       config.fileRenderer(new JavalinThymeleaf());
@@ -21,6 +22,8 @@ public class App {
       var model = new java.util.HashMap<String, Object>();
       model.put("username", ctx.sessionAttribute("username")); // null when not logged in
       model.put("role", ctx.sessionAttribute("role"));         // "admin" gates the panel button
+      Integer userId = ctx.sessionAttribute("userId");
+      model.put("points", userId != null ? Db.findUserById(userId).points() : null);
       ctx.render("templates/HomePage.html", model);
     });
     app.get("/faq", ctx -> ctx.result("FAQ"));
@@ -58,9 +61,12 @@ public class App {
       // Bind to a String first — sessionAttribute is generic, so inlining it
       // into Map.of() makes javac infer the wrong type and fail at runtime.
       String username = ctx.sessionAttribute("username");
-      ctx.render("templates/admin.html", Map.of(
-          "username", username,
-          "claims", Db.pendingClaims()));
+      int userId = ctx.sessionAttribute("userId");
+      var model = new java.util.HashMap<String, Object>();
+      model.put("username", username);
+      model.put("points", Db.findUserById(userId).points());
+      model.put("claims", Db.pendingClaims());
+      ctx.render("templates/admin.html", model);
     });
 
     // One lost report, plus the found items that might be it.
@@ -73,10 +79,13 @@ public class App {
         return;
       }
       String username = ctx.sessionAttribute("username");
-      ctx.render("templates/claim.html", Map.of(
-          "username", username,
-          "claim", claim,
-          "matches", Db.matchesFor(claim)));
+      int userId = ctx.sessionAttribute("userId");
+      var model = new java.util.HashMap<String, Object>();
+      model.put("username", username);
+      model.put("points", Db.findUserById(userId).points());
+      model.put("claim", claim);
+      model.put("matches", Db.matchesFor(claim));
+      ctx.render("templates/claim.html", model);
     });
 
     // Admin picked which found item this claim refers to.
@@ -100,8 +109,10 @@ public class App {
 
       // Update first: if the mail fails it only logs, and the admin can resend.
       // The other order could hand out a PIN for an item still marked stored.
-      if (Db.approveClaim(claimId, itemId))
+      if (Db.approveClaim(claimId, itemId)) {
         Emailer.sendPickupInstructions(claim.claimantEmail(), item);
+        Db.awardPoints(item.finderEmail(), Db.POINTS_PER_CLAIMED_ITEM);
+      }
 
       ctx.redirect("/admin");
     });
@@ -191,6 +202,31 @@ public class App {
       ctx.render("templates/submitted.html", Map.of(
           "title", "Your lost report was submitted!",
           "message", "An admin will review it and email " + email + " if a match is found."));
+    });
+
+    // ---- Points + rewards (any logged-in user) ----
+    app.get("/rewards", ctx -> {
+      if (!requireLogin(ctx))
+        return;
+      int userId = ctx.sessionAttribute("userId");
+      User user = Db.findUserById(userId);
+
+      var model = new java.util.HashMap<String, Object>();
+      model.put("username", user.username());
+      model.put("points", user.points());
+      model.put("rewards", Db.activeRewards());
+      model.put("redemptions", Db.myRedemptions(userId));
+      model.put("message", ctx.queryParam("msg"));
+      ctx.render("templates/rewards.html", model);
+    });
+
+    app.post("/rewards/{id}/redeem", ctx -> {
+      if (!requireLogin(ctx))
+        return;
+      int userId = ctx.sessionAttribute("userId");
+      int rewardId = Integer.parseInt(ctx.pathParam("id"));
+      String message = Db.redeem(userId, rewardId);
+      ctx.redirect("/rewards?msg=" + java.net.URLEncoder.encode(message, java.nio.charset.StandardCharsets.UTF_8));
     });
 
     // ---- Serve stored photos as image responses ----
@@ -299,6 +335,15 @@ public class App {
     }
     if (!"admin".equals(ctx.sessionAttribute("role"))) {
       ctx.redirect("/"); // logged in, but not an admin
+      return false;
+    }
+    return true;
+  }
+
+  // Looser than requireAdmin — any signed-in user can redeem rewards.
+  private static boolean requireLogin(io.javalin.http.Context ctx) {
+    if (ctx.sessionAttribute("userId") == null) {
+      ctx.redirect("/signin");
       return false;
     }
     return true;

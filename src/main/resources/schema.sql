@@ -39,5 +39,24 @@ CREATE TABLE IF NOT EXISTS users (
     username         TEXT NOT NULL,
     email            TEXT UNIQUE NOT NULL,
     password_hash    TEXT NOT NULL,
-    role             TEXT NOT NULL DEFAULT 'admin'
+    role             TEXT NOT NULL DEFAULT 'user',
+    points           INTEGER NOT NULL DEFAULT 0
     );
+
+CREATE TABLE IF NOT EXISTS rewards (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT NOT NULL,
+    description TEXT,
+    cost        INTEGER NOT NULL,
+    stock       INTEGER,               -- NULL = unlimited
+    active      INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS redemptions (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id      INTEGER NOT NULL,
+    reward_id    INTEGER NOT NULL,
+    redeemed_at  TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (reward_id) REFERENCES rewards(id)
+);

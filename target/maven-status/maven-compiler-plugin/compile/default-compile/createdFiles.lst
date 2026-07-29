@@ -1,8 +1,10 @@
 mavsreclaim/Db.class
+mavsreclaim/Reward.class
 mavsreclaim/User.class
 mavsreclaim/FoundItem.class
 mavsreclaim/Emailer.class
 mavsreclaim/Emailer$1.class
 mavsreclaim/App.class
 mavsreclaim/Categories.class
+mavsreclaim/Redemption.class
 mavsreclaim/Claim.class

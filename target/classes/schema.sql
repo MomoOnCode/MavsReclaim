@@ -39,5 +39,6 @@ CREATE TABLE IF NOT EXISTS users (
     username         TEXT NOT NULL,
     email            TEXT UNIQUE NOT NULL,
     password_hash    TEXT NOT NULL,
-    role             TEXT NOT NULL DEFAULT 'admin'
+    role             TEXT NOT NULL DEFAULT 'admin',
+    points           INTEGER NOT NULL DEFAULT 0
     );
