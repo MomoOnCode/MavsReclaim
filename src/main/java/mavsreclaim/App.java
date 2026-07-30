@@ -1,7 +1,6 @@
 package mavsreclaim;
 
 import io.javalin.Javalin;
-import java.util.Map;
 
 import io.javalin.rendering.template.JavalinThymeleaf;
 import at.favre.lib.crypto.bcrypt.BCrypt;
@@ -27,7 +26,10 @@ public class App {
       ctx.render("templates/HomePage.html", model);
     });
     app.get("/faq", ctx -> ctx.result("FAQ"));
-    app.get("/signin", ctx -> ctx.render("templates/login.html"));
+    // username is here (and on every render below) purely so the navbar can
+    // decide whether to show the Rewards link. null == guest.
+    app.get("/signin", ctx -> ctx.render("templates/login.html",
+        java.util.Collections.singletonMap("username", ctx.sessionAttribute("username"))));
 
     // Verify credentials, start a session, then send them to the admin panel.
     app.post("/login", ctx -> {
@@ -61,10 +63,8 @@ public class App {
       // Bind to a String first — sessionAttribute is generic, so inlining it
       // into Map.of() makes javac infer the wrong type and fail at runtime.
       String username = ctx.sessionAttribute("username");
-      int userId = ctx.sessionAttribute("userId");
       var model = new java.util.HashMap<String, Object>();
       model.put("username", username);
-      model.put("points", Db.findUserById(userId).points());
       model.put("claims", Db.pendingClaims());
       ctx.render("templates/admin.html", model);
     });
@@ -79,10 +79,8 @@ public class App {
         return;
       }
       String username = ctx.sessionAttribute("username");
-      int userId = ctx.sessionAttribute("userId");
       var model = new java.util.HashMap<String, Object>();
       model.put("username", username);
-      model.put("points", Db.findUserById(userId).points());
       model.put("claim", claim);
       model.put("matches", Db.matchesFor(claim));
       ctx.render("templates/claim.html", model);
@@ -129,7 +127,8 @@ public class App {
       ctx.req().getSession().invalidate();
       ctx.redirect("/");
     });
-    app.get("/create", ctx -> ctx.render("templates/create-account.html"));
+    app.get("/create", ctx -> ctx.render("templates/create-account.html",
+        java.util.Collections.singletonMap("username", ctx.sessionAttribute("username"))));
 
     // Create the account, then send them to the login page to sign in.
     app.post("/create", ctx -> {
@@ -145,9 +144,14 @@ public class App {
       }
     });
     // ---- Found-item report (public — someone turning in an item) ----
-    app.get("/found", ctx -> ctx.render("templates/found.html", Map.of(
-        "buildings", Db.allBuildings(),
-        "categories", Categories.ALL)));
+    // HashMap, not Map.of — username is null for a guest and Map.of rejects nulls.
+    app.get("/found", ctx -> {
+      var model = new java.util.HashMap<String, Object>();
+      model.put("username", ctx.sessionAttribute("username"));
+      model.put("buildings", Db.allBuildings());
+      model.put("categories", Categories.ALL);
+      ctx.render("templates/found.html", model);
+    });
 
     app.post("/found", ctx -> {
       String desc = ctx.formParam("description");
@@ -169,6 +173,7 @@ public class App {
 
       // lockerId can be null (no free locker in that building) -> HashMap, not Map.of
       var model = new java.util.HashMap<String, Object>();
+      model.put("username", ctx.sessionAttribute("username"));
       model.put("title", "Thanks for turning in an item!");
       model.put("message", "We've emailed drop-off instructions to " + email + ".");
       model.put("lockerId", item.lockerId());
@@ -177,9 +182,13 @@ public class App {
     });
 
     // ---- Lost-item report (public — becomes a claim in the admin queue) ----
-    app.get("/lost", ctx -> ctx.render("templates/lost.html", Map.of(
-        "buildings", Db.allBuildings(),
-        "categories", Categories.ALL)));
+    app.get("/lost", ctx -> {
+      var model = new java.util.HashMap<String, Object>();
+      model.put("username", ctx.sessionAttribute("username"));
+      model.put("buildings", Db.allBuildings());
+      model.put("categories", Categories.ALL);
+      ctx.render("templates/lost.html", model);
+    });
 
     app.post("/lost", ctx -> {
       String desc = ctx.formParam("description");
@@ -199,9 +208,11 @@ public class App {
 
       Db.addClaim(desc, category, building, email, lostOn, photo, photoType);
 
-      ctx.render("templates/submitted.html", Map.of(
-          "title", "Your lost report was submitted!",
-          "message", "An admin will review it and email " + email + " if a match is found."));
+      var model = new java.util.HashMap<String, Object>();
+      model.put("username", ctx.sessionAttribute("username"));
+      model.put("title", "Your lost report was submitted!");
+      model.put("message", "An admin will review it and email " + email + " if a match is found.");
+      ctx.render("templates/submitted.html", model);
     });
 
     // ---- Points + rewards (any logged-in user) ----
@@ -214,6 +225,7 @@ public class App {
       var model = new java.util.HashMap<String, Object>();
       model.put("username", user.username());
       model.put("points", user.points());
+      model.put("role", user.role()); // admins see the catalog, but no points balance
       model.put("rewards", Db.activeRewards());
       model.put("redemptions", Db.myRedemptions(userId));
       model.put("message", ctx.queryParam("msg"));

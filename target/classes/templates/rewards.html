@@ -24,26 +24,30 @@
         <nav>
             <a href="/">Home</a>
             <a href="/faq">FAQ</a>
+            <a th:if="${username != null}" href="/rewards">Rewards</a>
         </nav>
 
         <div class="account-status">
             <span>Logged in as: <span th:text="${username}">username</span></span>
-            <span><span th:text="${points}">0</span> pts</span>
+            <span th:if="${role != 'admin'}"><span th:text="${points}">0</span> pts</span>
             <a href="/logout" class="logout-button">Log out</a>
         </div>
     </header>
 
 
     <main class="admin-main">
-
+    <div>
         <h2>Your Rewards</h2>
-        <p class="subtitle">
+        <p class="subtitle" th:if="${role != 'admin'}">
             You have <strong th:text="${points}">0</strong> points.
             Report a found item that gets claimed to earn 25 more.
         </p>
+        <p class="subtitle" th:if="${role == 'admin'}">
+            Admin accounts don't collect points — this is the reward catalog students see.
+        </p>
 
         <p class="success-banner" th:if="${message != null}" th:text="${message}"></p>
-
+    </div>
         <table class="admin-table">
             <thead>
                 <tr>
@@ -75,6 +79,7 @@
             </tbody>
         </table>
 
+        <div class="history">
         <h2 style="margin-top: 32px;">Your Redemption History</h2>
 
         <table class="admin-table">
@@ -96,6 +101,7 @@
                 </tr>
             </tbody>
         </table>
+        </div>
 
     </main>
 

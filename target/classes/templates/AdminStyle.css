@@ -237,3 +237,8 @@
 
     margin-bottom: 18px;
 }
+
+.approve-button:disabled {
+    background-color: #a9b0b8;
+    cursor: not-allowed;
+}

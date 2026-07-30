@@ -23,7 +23,7 @@
         <nav>
             <a href="/">Home</a>
             <a href="/faq">FAQ</a>
-            <a href="/rewards">Rewards</a>
+            <a th:if="${username != null}" href="/rewards">Rewards</a>
         </nav>
     </header>
 

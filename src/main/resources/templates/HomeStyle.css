@@ -12,10 +12,14 @@ body {
     background-color: white;
 }
 
-
+.history {
+    margin-left: 20px;
+}
 /* Navigation Bar */
 .navbar {
-    height: 88px;
+    /* min-height, not height: the account stack grows when extra links show
+       (e.g. the admin panel button) and a fixed height made it spill out */
+    min-height: 88px;
 
     background: linear-gradient(
         to right,

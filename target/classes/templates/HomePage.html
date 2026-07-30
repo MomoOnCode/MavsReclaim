@@ -21,10 +21,13 @@
         <nav>
             <a href="/">Home</a>
             <a href="/faq">FAQ</a>
+            <a th:if="${username != null}" href="/rewards">Rewards</a>
         </nav>
         <!-- Logged-in status — shown when a session exists -->
         <div th:if="${username != null}" class="account-status">
             <span>Logged in as: <span th:text="${username}">username</span></span>
+            <!-- Points are a regular-user thing; admins never earn or spend them -->
+            <span th:if="${points != null and role != 'admin'}"><span th:text="${points}">0</span> pts</span>
             <a th:if="${role == 'admin'}" href="/admin" class="logout-button">Admin Panel</a>
             <a href="/logout" class="logout-button">Log out</a>
         </div>
@@ -36,18 +39,21 @@
             <p>
                 The one stop place for all your reporting and claiming lost items.
             </p>
-            <p>
-                Have an account?
-                <a href="/signin">Sign-In</a>
-            </p>
-            <p>
-                If not that is okay! You can continue as a guest but make an
-                account to get full use of our points and reward system.
-                <br>
-                <a href="/create">
-                    Create an account.
-                </a>
-            </p>
+            <!-- Sign-in / sign-up pitch is only useful to guests -->
+            <th:block th:if="${username == null}">
+                <p>
+                    Have an account?
+                    <a href="/signin">Sign-In</a>
+                </p>
+                <p>
+                    If not that is okay! You can continue as a guest but make an
+                    account to get full use of our points and reward system.
+                    <br>
+                    <a href="/create">
+                        Create an account.
+                    </a>
+                </p>
+            </th:block>
             <p>
                 For more information visit our
                 <a href="/faq">FAQ page.</a>

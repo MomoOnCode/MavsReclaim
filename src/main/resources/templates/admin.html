@@ -25,13 +25,12 @@
         <nav>
             <a href="/">Home</a>
             <a href="/faq">FAQ</a>
-            <a href="/rewards">Rewards</a>
+            <a th:if="${username != null}" href="/rewards">Rewards</a>
         </nav>
 
         <!-- Logged-in status — same component as the home page -->
         <div th:if="${username != null}" class="account-status">
             <span>Logged in as: <span th:text="${username}">username</span></span>
-            <span th:if="${points != null}"><span th:text="${points}">0</span> pts</span>
             <a href="/logout" class="logout-button">Log out</a>
         </div>
 
