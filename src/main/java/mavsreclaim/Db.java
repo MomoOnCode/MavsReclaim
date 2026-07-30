@@ -497,10 +497,10 @@ public class Db {
 
       Object[][] seed = {
           // name, description, cost, stock (null = unlimited)
-          { "MavsReclaim Sticker", "A vinyl laptop sticker.", 20, null },
-          { "UC Coffee Cart Coupon", "One free coffee at the University Center cart.", 60, 50 },
-          { "UTA Bookstore $5 Gift Card", "Redeemable at the campus bookstore.", 200, 20 },
-          { "MavsReclaim T-Shirt", "Limited run — while supplies last.", 350, 15 },
+          { "MavsReclaim Sticker", "A laptop sticker", 20, null },
+          { "MavsReclaim T-Shirt", "Limited while supplies last", 60, 50 },
+          { "Inclusion Coffee Coupon", "Free Coffee at Inclusion", 200, 20 },
+          { "Chick Fil A Free meal", "Redeemable only on campus", 350, 15 },
       };
 
       try (PreparedStatement p = c.prepareStatement(
