@@ -11,10 +11,16 @@ import java.time.LocalDate;
 import at.favre.lib.crypto.bcrypt.BCrypt;
 
 public class Db {
-  private static final String URL = "jdbc:sqlite:mavsreclaim.db";
+  private static String url = "jdbc:sqlite:mavsreclaim.db";
 
   public static Connection connect() throws SQLException {
-    return DriverManager.getConnection(URL);
+    return DriverManager.getConnection(url);
+  }
+
+  // Point every later connect() at a different SQLite file. The tests call this
+  // with a temp file so they never touch the real mavsreclaim.db.
+  public static void useDatabase(String path) {
+    url = "jdbc:sqlite:" + path;
   }
 
   public static void init() {

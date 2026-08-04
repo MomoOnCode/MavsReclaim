@@ -16,12 +16,16 @@ body {
     );
 
     display: flex;
+    
     align-items: center;
 
     padding: 0 25px;
 
     color: white;
+
 }
+}
+
 
 
 /* Logo */
@@ -42,7 +46,7 @@ body {
 /* Main website title */
 .navbar h1 {
     font-size: 32px;
-    margin-left: 10px;
+    margin-left: -40px;
 
     background: linear-gradient(to right, #ffffff, #ed8b38 55%);
     -webkit-background-clip: text;
@@ -51,6 +55,20 @@ body {
     color: transparent;
 }
 
+nav a {
+    color: white;
+
+    text-decoration: none;
+
+    font-size: 24px;
+    font-weight: bold;
+    margin-left: 200px;
+}
+
+
+nav a:hover {
+    text-decoration: underline;
+}
 main{
 
     width:95%;
@@ -61,6 +79,11 @@ main{
 /* ========================= */
 /* Information Sections */
 /* ========================= */
+
+.qlabel{
+    background-color: #ed8b38;
+}
+
 
 .info-section{
 

@@ -25,7 +25,7 @@ public class App {
       model.put("points", userId != null ? Db.findUserById(userId).points() : null);
       ctx.render("templates/HomePage.html", model);
     });
-    app.get("/faq", ctx -> ctx.result("FAQ"));
+    app.get("/faq", ctx -> ctx.render("templates/faq.html"));
     // username is here (and on every render below) purely so the navbar can
     // decide whether to show the Rewards link. null == guest.
     app.get("/signin", ctx -> ctx.render("templates/login.html",
