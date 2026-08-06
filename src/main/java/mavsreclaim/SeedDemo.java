@@ -2,54 +2,19 @@ package mavsreclaim;
 
 import java.sql.*;
 
-/*
- * Fills the database with a demo dataset spread over the two weeks ending
- * 2026-08-05. Reporting through the web forms stamps everything with
- * datetime('now'), which makes the admin queue and the search ranking look
- * wrong in a demo, so this goes through the normal Db calls (lockers, PINs,
- * approvals, locker release all behave exactly like the real flow) and then
- * rewrites created_at afterwards.
- *
- * App.main() calls seed() on startup, so the usual
- *
- *   mvn compile exec:java
- *
- * comes up with the demo data already in place. Delete that one call when the
- * demo is over — seed() wipes items, claims, redemptions and non-admin users
- * every time it runs, so nothing entered through the site survives a restart.
- *
- * Can also be run on its own against a different file, which leaves
- * mavsreclaim.db alone:
- *
- *   mvn -q compile exec:exec -Dexec.executable=java \
- *       -Dexec.args="-cp %classpath mavsreclaim.SeedDemo demo.db"
- *
- * exec:exec, not exec:java, for that standalone run — exec:java runs inside
- * Maven's own JVM and hangs after main() returns waiting on a non-daemon
- * thread, which also swallows the output. (App doesn't hit this: its server
- * never returns from main anyway.)
- */
+
 public class SeedDemo {
 
-  // Everything is dated relative to this so the whole window can be slid
-  // forward when the demo date changes.
   private static final String TODAY = "2026-08-05";
 
-  // Every seeded account uses this — the accounts exist so you can sign in and
-  // show the rewards page, not to be secure.
   private static final String PASSWORD = "demo1234";
 
-  // Every found item and every lost report is filed under this address, so any
-  // mail the demo triggers lands in one inbox. It also means the points from
-  // approved claims all credit the account below that owns it.
   private static final String DEMO_EMAIL = "kxm2572@mavs.uta.edu";
 
   public static void main(String[] args) {
     if (args.length > 0)
       Db.useDatabase(args[0]);
 
-    // App already does these three before it calls seed(); they're here so the
-    // standalone run works against an empty file too.
     Db.init();
     Db.seedLockers();
     Db.seedAdmin();
@@ -57,11 +22,9 @@ public class SeedDemo {
     seed();
   }
 
-  // Resets the demo dataset. Safe to call on every startup — it clears its own
-  // rows first, so the data never piles up or drifts.
   public static void seed() {
     wipe();
-    Db.seedRewards(); // re-inserts the catalog at full stock after the wipe
+    Db.seedRewards(); 
 
     seedUsers();
     seedItems();
@@ -71,12 +34,6 @@ public class SeedDemo {
     summarize();
   }
 
-  // ---------- reset ----------
-
-  // Leaves lockers and the admin account alone; everything a demo run touches
-  // goes back to empty. AUTOINCREMENT counters are reset too so the seeded IDs
-  // are stable (item 3 is always the AirPods) and the URLs in a walkthrough
-  // don't drift between runs.
   private static void wipe() {
     exec("DELETE FROM redemptions");
     exec("DELETE FROM claims");
@@ -87,13 +44,8 @@ public class SeedDemo {
     exec("DELETE FROM sqlite_sequence WHERE name IN ('items','claims','rewards','redemptions')");
   }
 
-  // ---------- users ----------
 
   private static void seedUsers() {
-    // username, email. The first one owns DEMO_EMAIL, so it's the account that
-    // collects the points from every approved claim. The other two exist to
-    // show the rewards page at a different tier — one that can afford some of
-    // the catalog and one that can't afford any of it.
     String[][] users = {
         { "kyle", DEMO_EMAIL },
         { "priya.nair", "pnair@mavs.uta.edu" },
@@ -103,20 +55,10 @@ public class SeedDemo {
       Db.addUser(u[0], u[1], PASSWORD);
   }
 
-  // ---------- demo photos ----------
-
-  // Nobody uploads a real photo during seeding, but the admin queue and the
-  // match table look broken without thumbnails — and an admin can't compare a
-  // report against its candidates with one side blank. Two distinct stand-ins
-  // so it's obvious at a glance which side of the review you're looking at:
-  // navy for stored items, orange for what the student sent in. Both are
-  // square because the 60px thumbnails crop to a square.
-  private static final String ITEM_PHOTO_RESOURCE = "/templates/demo_item.png";
+ private static final String ITEM_PHOTO_RESOURCE = "/templates/demo_item.png";
   private static final String CLAIM_PHOTO_RESOURCE = "/templates/demo_claim.png";
   private static final String PHOTO_TYPE = "image/png";
 
-  // Read once at class load. Null if a file ever moves — seeding without
-  // images is better than failing startup over a placeholder.
   private static final byte[] ITEM_PHOTO = loadPhoto(ITEM_PHOTO_RESOURCE);
   private static final byte[] CLAIM_PHOTO = loadPhoto(CLAIM_PHOTO_RESOURCE);
 
@@ -138,10 +80,6 @@ public class SeedDemo {
     return photo == null ? null : PHOTO_TYPE;
   }
 
-  // ---------- found items ----------
-
-  // description, category, building, created_at. The finder is always
-  // DEMO_EMAIL.
   private static final String[][] ITEMS = {
       { "Blue Hydro Flask with a UTA sticker on it", "Miscellanious", "Central Library",
           "2026-07-22 09:14:00" },
@@ -183,11 +121,6 @@ public class SeedDemo {
     }
   }
 
-  // ---------- lost reports (claims) ----------
-
-  // description, category, building, lost_on, created_at, outcome
-  // ("approved:<itemId>", "rejected", or "pending"). The claimant is always
-  // DEMO_EMAIL, so approval mail goes to that one inbox.
   private static final String[][] CLAIMS = {
       { "Blue metal water bottle with stickers", "Miscellanious", "Central Library",
           "2026-07-22", "2026-07-23 08:02:00", "approved:1" },
@@ -195,11 +128,8 @@ public class SeedDemo {
           "2026-07-23", "2026-07-24 09:41:00", "approved:3" },
       { "MacBook Air 13 inch in a blue sleeve", "Laptop", "Central Library",
           "2026-07-28", "2026-07-28 19:10:00", "approved:7" },
-      // Nothing in that building matched — closed out so the queue stays clean.
       { "Green JanSport backpack", "Backpack / Bag", "Woolf Hall",
           "2026-07-26", "2026-07-27 10:15:00", "rejected" },
-      // The five below are the queue at /admin. Each one has a plausible stored
-      // item in the same building so the match list isn't empty.
       { "Black North Face backpack with a laptop inside", "Backpack / Bag", "Nedderman Hall",
           "2026-07-22", "2026-08-01 12:44:00", "pending" },
       { "My MavID card, I think I dropped it near the food court", "ID", "University Center",
@@ -220,8 +150,6 @@ public class SeedDemo {
 
       String outcome = c[5];
       if (outcome.startsWith("approved:")) {
-        // Goes through the real approval so the item is marked claimed and its
-        // locker is handed back. No email — that only happens in the route.
         Db.approveClaim(claim.id(), Integer.parseInt(outcome.substring("approved:".length())));
       } else if (outcome.equals("rejected")) {
         Db.rejectClaim(claim.id());
@@ -229,20 +157,12 @@ public class SeedDemo {
     }
   }
 
-  // ---------- points + redemptions ----------
-
-  // The three approvals above already credited DEMO_EMAIL 25 points each
-  // through approveClaim's normal path. These balances overwrite that to stand
-  // in for a semester of earlier activity, so the rewards page has something to
-  // show at every tier: 145 affords everything but the Chick Fil A meal, 85
-  // affords the sticker and the shirt, 0 affords nothing.
   private static final Object[][] BALANCES = {
       { DEMO_EMAIL, 145 },
       { "pnair@mavs.uta.edu", 85 },
       { "atran@mavs.uta.edu", 0 },
   };
 
-  // user email, reward name, redeemed_at — history shown on /rewards.
   private static final String[][] REDEMPTIONS = {
       { DEMO_EMAIL, "MavsReclaim Sticker", "2026-07-26 13:30:00" },
       { "pnair@mavs.uta.edu", "MavsReclaim Sticker", "2026-07-30 09:12:00" },
@@ -261,8 +181,6 @@ public class SeedDemo {
         p.executeBatch();
       }
 
-      // Written straight in rather than through Db.redeem so the balances above
-      // stay exactly as set; stock is decremented by hand to match.
       String sql = """
           INSERT INTO redemptions (user_id, reward_id, redeemed_at)
           VALUES ((SELECT id FROM users WHERE email = ?),
@@ -290,7 +208,6 @@ public class SeedDemo {
     }
   }
 
-  // ---------- helpers ----------
 
   private static void backdate(String table, int id, String createdAt) {
     try (Connection c = Db.connect();
