@@ -30,7 +30,15 @@ public class App {
       model.put("points", userId != null ? Db.findUserById(userId).points() : null);
       ctx.render("templates/HomePage.html", model);
     });
-    app.get("/faq", ctx -> ctx.render("templates/faq.html"));
+    // Same three attributes as "/" so the navbar renders identically here.
+    app.get("/faq", ctx -> {
+      var model = new java.util.HashMap<String, Object>();
+      model.put("username", ctx.sessionAttribute("username"));
+      model.put("role", ctx.sessionAttribute("role"));
+      Integer userId = ctx.sessionAttribute("userId");
+      model.put("points", userId != null ? Db.findUserById(userId).points() : null);
+      ctx.render("templates/faq.html", model);
+    });
     // username is here (and on every render below) purely so the navbar can
     // decide whether to show the Rewards link. null == guest.
     app.get("/signin", ctx -> ctx.render("templates/login.html",

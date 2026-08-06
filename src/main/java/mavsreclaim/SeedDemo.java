@@ -103,6 +103,41 @@ public class SeedDemo {
       Db.addUser(u[0], u[1], PASSWORD);
   }
 
+  // ---------- demo photos ----------
+
+  // Nobody uploads a real photo during seeding, but the admin queue and the
+  // match table look broken without thumbnails — and an admin can't compare a
+  // report against its candidates with one side blank. Two distinct stand-ins
+  // so it's obvious at a glance which side of the review you're looking at:
+  // navy for stored items, orange for what the student sent in. Both are
+  // square because the 60px thumbnails crop to a square.
+  private static final String ITEM_PHOTO_RESOURCE = "/templates/demo_item.png";
+  private static final String CLAIM_PHOTO_RESOURCE = "/templates/demo_claim.png";
+  private static final String PHOTO_TYPE = "image/png";
+
+  // Read once at class load. Null if a file ever moves — seeding without
+  // images is better than failing startup over a placeholder.
+  private static final byte[] ITEM_PHOTO = loadPhoto(ITEM_PHOTO_RESOURCE);
+  private static final byte[] CLAIM_PHOTO = loadPhoto(CLAIM_PHOTO_RESOURCE);
+
+  private static byte[] loadPhoto(String resource) {
+    try (java.io.InputStream in = SeedDemo.class.getResourceAsStream(resource)) {
+      if (in == null) {
+        System.err.println("[SEED] no placeholder photo at " + resource);
+        return null;
+      }
+      return in.readAllBytes();
+    } catch (java.io.IOException e) {
+      System.err.println("[SEED] could not read " + resource + " — " + e.getMessage());
+      return null;
+    }
+  }
+
+  // Keeps photo_type null when there are no bytes to go with it.
+  private static String photoType(byte[] photo) {
+    return photo == null ? null : PHOTO_TYPE;
+  }
+
   // ---------- found items ----------
 
   // description, category, building, created_at. The finder is always
@@ -142,7 +177,8 @@ public class SeedDemo {
 
   private static void seedItems() {
     for (String[] i : ITEMS) {
-      FoundItem item = Db.addFoundItem(i[0], i[1], i[2], DEMO_EMAIL);
+      FoundItem item = Db.addFoundItem(i[0], i[1], i[2], DEMO_EMAIL,
+          ITEM_PHOTO, photoType(ITEM_PHOTO));
       backdate("items", item.id(), i[3]);
     }
   }
@@ -178,7 +214,8 @@ public class SeedDemo {
 
   private static void seedClaims() {
     for (String[] c : CLAIMS) {
-      Claim claim = Db.addClaim(c[0], c[1], c[2], DEMO_EMAIL, c[3]);
+      Claim claim = Db.addClaim(c[0], c[1], c[2], DEMO_EMAIL, c[3],
+          CLAIM_PHOTO, photoType(CLAIM_PHOTO));
       backdate("claims", claim.id(), c[4]);
 
       String outcome = c[5];
