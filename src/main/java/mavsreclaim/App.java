@@ -12,6 +12,11 @@ public class App {
     Db.seedAdmin();
     Db.seedRewards();
 
+    // Demo only — rebuilds the sample items/claims/users dated across the two
+    // weeks ending 2026-08-05. Wipes anything entered through the site, so
+    // delete this line once the demo is over. See SeedDemo.
+    SeedDemo.seed();
+
     Javalin app = Javalin.create(config -> {
       config.fileRenderer(new JavalinThymeleaf());
       config.staticFiles.add("/templates");
